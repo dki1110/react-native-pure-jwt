@@ -96,15 +96,11 @@ public class RNPureJwtModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void decode(String token, String secret, ReadableMap options, Promise callback) {
-        JwtParser parser = Jwts.parser().setSigningKey(this.toBase64(secret));
-
         Boolean skipValidation = false;
 
         Set<Map.Entry<String, Object>> entries = options.toHashMap().entrySet();
-
         for (Object entry: entries) {
             Map.Entry item = (Map.Entry) entry;
-
             String key = (String) item.getKey();
             Object value = item.getValue();
 
@@ -115,10 +111,17 @@ public class RNPureJwtModule extends ReactContextBaseJavaModule {
             }
         }
 
-        Jwt parsed;
+        JwtParser parser = Jwts.parser();
 
         try {
-            parsed = parser.parse(token);
+            if (!skipValidation) {
+                parser.setSigningKey(this.toBase64(secret));
+            }
+
+            Jwt parsed = parser.parse(token);
+
+            this.getResponse(parsed, callback);
+
         } catch(MalformedJwtException e) {
             if(skipValidation) {
                 this.getResponse(token, callback);
@@ -150,8 +153,6 @@ public class RNPureJwtModule extends ReactContextBaseJavaModule {
 
             return;
         }
-
-        this.getResponse(parsed, callback);
     }
 
     @ReactMethod
