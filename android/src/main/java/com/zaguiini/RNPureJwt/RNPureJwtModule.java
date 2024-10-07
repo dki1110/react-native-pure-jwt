@@ -125,7 +125,7 @@ public class RNPureJwtModule extends ReactContextBaseJavaModule {
                     ObjectMapper mapper = new ObjectMapper();
                     Map<String, Object> headerMap = mapper.readValue(headerJson, Map.class);
                     Map<String, Object> payloadMap = mapper.readValue(payloadJson, Map.class);
-                    
+
                     WritableMap headers = Arguments.makeNativeMap(headerMap);
                     WritableMap payload = Arguments.makeNativeMap(payloadMap);
 
@@ -134,6 +134,7 @@ public class RNPureJwtModule extends ReactContextBaseJavaModule {
                     response.putMap("payload", payload);
 
                     callback.resolve(response);
+                }
             } else {
                 if (secret == null || secret.isEmpty()) {
                     callback.reject("7", "Signing key is missing.");
