@@ -114,14 +114,37 @@ public class RNPureJwtModule extends ReactContextBaseJavaModule {
         JwtParser parser = Jwts.parser();
 
         try {
-            if (!skipValidation) {
+            if (skipValidation) {
+                // Since the existing JWT library will try to validate the signature,
+                // we manually parse the JWT if skipValidation: true
+                String[] parts = token.split("\\.");
+                if (parts.length == 3) {
+                    String headerJson = new String(Base64.decode(parts[0], Base64.DEFAULT), "UTF-8");
+                    String payloadJson = new String(Base64.decode(parts[1], Base64.DEFAULT), "UTF-8");
+                    
+                    ObjectMapper mapper = new ObjectMapper();
+                    Map<String, Object> headerMap = mapper.readValue(headerJson, Map.class);
+                    Map<String, Object> payloadMap = mapper.readValue(payloadJson, Map.class);
+                    
+                    WritableMap headers = Arguments.makeNativeMap(headerMap);
+                    WritableMap payload = Arguments.makeNativeMap(payloadMap);
+
+                    WritableMap response = Arguments.createMap();
+                    response.putMap("headers", headers);
+                    response.putMap("payload", payload);
+
+                    callback.resolve(response);
+            } else {
+                if (secret == null || secret.isEmpty()) {
+                    callback.reject("7", "Signing key is missing.");
+                    return;
+                }
+
                 parser.setSigningKey(this.toBase64(secret));
+
+                Jwt parsed = parser.parse(token);
+                this.getResponse(parsed, callback);
             }
-
-            Jwt parsed = parser.parse(token);
-
-            this.getResponse(parsed, callback);
-
         } catch(MalformedJwtException e) {
             if(skipValidation) {
                 this.getResponse(token, callback);
